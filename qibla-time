@@ -1,0 +1,462 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>Prayer Time</title>
+  <meta name="theme-color" content="#070B14" />
+  <style>
+    :root{
+      --bg1:#070B14;
+      --bg2:#0B1326;
+      --text:#EAF0FF;
+      --muted:rgba(234,240,255,.62);
+      --soft:rgba(234,240,255,.08);
+      --accent:#79A7FF;
+      --accentSoft:rgba(121,167,255,.18);
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+      color:var(--text);
+      background:
+        radial-gradient(900px 600px at 20% -10%, rgba(121,167,255,.18), transparent 55%),
+        radial-gradient(900px 600px at 120% 20%, rgba(57,217,138,.10), transparent 60%),
+        linear-gradient(180deg, var(--bg1), var(--bg2));
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom));
+    }
+    .frame{
+      width:min(520px, 100%);
+      border:1px solid rgba(255,255,255,.08);
+      border-radius:24px;
+      background: rgba(255,255,255,.02);
+      backdrop-filter: blur(10px);
+      padding:22px 18px 18px;
+    }
+    .top{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      margin-bottom:18px;
+    }
+    .place{
+      display:flex;
+      flex-direction:column;
+      gap:4px;
+      min-width:0;
+    }
+    .place .city{
+      font-size:14px;
+      font-weight:800;
+      letter-spacing:.2px;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      max-width: 360px;
+    }
+    .place .meta{
+      font-size:12px;
+      color:var(--muted);
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .btn{
+      height:36px;
+      padding:0 12px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.04);
+      color:var(--text);
+      font-weight:800;
+      cursor:pointer;
+      transition: transform .12s ease, background .12s ease, border-color .12s ease;
+      user-select:none;
+      white-space:nowrap;
+    }
+    .btn:hover{transform: translateY(-1px); border-color: rgba(121,167,255,.35)}
+    .btn:active{transform: translateY(0px)}
+    .center{
+      text-align:center;
+      padding: 18px 10px 10px;
+    }
+    .label{
+      font-size:12px;
+      color:var(--muted);
+      letter-spacing:.6px;
+      text-transform:uppercase;
+    }
+    .prayer{
+      margin-top:10px;
+      font-size:18px;
+      font-weight:900;
+      letter-spacing:1.8px;
+    }
+    .time{
+      margin-top:12px;
+      font-size:64px;
+      font-weight:1000;
+      letter-spacing:1px;
+      line-height:1;
+    }
+    .countdown{
+      margin-top:14px;
+      display:inline-flex;
+      gap:10px;
+      align-items:center;
+      padding:10px 12px;
+      border-radius:999px;
+      border:1px solid rgba(121,167,255,.25);
+      background: var(--accentSoft);
+      color: rgba(234,240,255,.88);
+      font-size:13px;
+      font-weight:800;
+    }
+    .dot{
+      width:7px;height:7px;border-radius:50%;
+      background: var(--accent);
+      box-shadow: 0 0 0 5px rgba(121,167,255,.10);
+    }
+    .hint{
+      margin-top:14px;
+      font-size:12px;
+      color:var(--muted);
+      line-height:1.35;
+    }
+    .bottom{
+      margin-top:18px;
+      padding-top:14px;
+      border-top:1px solid rgba(255,255,255,.06);
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      justify-content:center;
+    }
+    .small{
+      height:38px;
+      border-radius:14px;
+      padding:0 12px;
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.03);
+      color:var(--text);
+      font-weight:900;
+      cursor:pointer;
+    }
+    .small.primary{
+      border-color: rgba(121,167,255,.45);
+      background: rgba(121,167,255,.12);
+    }
+    .status{
+      margin-top:14px;
+      text-align:center;
+      font-size:12px;
+      color:var(--muted);
+      min-height:16px;
+    }
+    .sr{position:absolute;left:-9999px}
+  </style>
+</head>
+<body>
+  <main class="frame">
+    <div class="top">
+      <div class="place">
+        <div class="city" id="city">—</div>
+        <div class="meta" id="meta">Определяю местное время…</div>
+      </div>
+      <button class="btn" id="locate">📍 Обновить</button>
+    </div>
+
+    <section class="center" aria-live="polite">
+      <div class="label">Следующая молитва</div>
+      <div class="prayer" id="prayerName">—</div>
+      <div class="time" id="prayerTime">--:--</div>
+      <div class="countdown" id="countdown">
+        <span class="dot" aria-hidden="true"></span>
+        <span id="countdownText">—</span>
+      </div>
+      <div class="hint">Оповещение: нажми “Добавить в календарь” — скачает .ics на 30 дней (напоминание за 10 минут).</div>
+      <div class="status" id="status"></div>
+    </section>
+
+    <div class="bottom">
+      <button class="small primary" id="addCalendar">📅 Добавить в календарь</button>
+      <button class="small" id="showAll">🕰 Показать все времена</button>
+    </div>
+
+    <div class="sr" id="allTimesSr"></div>
+  </main>
+
+<script>
+  // Минимальный экран: показывает ТОЛЬКО следующую молитву.
+  // Оповещение: экспорт .ics на 30 дней (напоминание за 10 минут).
+  //
+  // Источник: Aladhan API.
+  // Гео->город: Nominatim (OSM).
+
+  const PRAYERS = [
+    ["Fajr","Фаджр"],
+    ["Dhuhr","Зухр"],
+    ["Asr","Аср"],
+    ["Maghrib","Магриб"],
+    ["Isha","Иша"]
+  ];
+
+  const $ = (id) => document.getElementById(id);
+
+  let state = {
+    lat: null,
+    lng: null,
+    city: null,
+    country: null,
+    timings: null,
+    next: null,
+    tick: null,
+    lastComputedAt: 0
+  };
+
+  function setStatus(msg){
+    $("status").textContent = msg || "";
+  }
+
+  function stripSuffix(t){ return String(t||"").split(" ")[0].trim(); }
+
+  function pad2(n){ return String(n).padStart(2,"0"); }
+
+  function fmtHM(d){ return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`; }
+
+  function parseHHMMOnDate(hhmm, date){
+    const [h,m] = hhmm.split(":").map(Number);
+    const d = new Date(date);
+    d.setHours(h,m,0,0);
+    return d;
+  }
+
+  function computeNext(timings){
+    const now = new Date();
+    const today0 = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0,0,0,0);
+
+    // find next today
+    for (const [key, ru] of PRAYERS){
+      const t = stripSuffix(timings[key]);
+      if (!t) continue;
+      const at = parseHHMMOnDate(t, today0);
+      if (at.getTime() > now.getTime()){
+        return { key, ru, t, at };
+      }
+    }
+
+    // otherwise tomorrow fajr
+    const t = stripSuffix(timings["Fajr"]);
+    const tomorrow0 = new Date(today0.getTime() + 86400000);
+    const at = parseHHMMOnDate(t, tomorrow0);
+    return { key:"Fajr", ru:"Фаджр", t, at };
+  }
+
+  function updateUI(){
+    if (!state.timings) return;
+
+    // recompute next occasionally or when time passes
+    const now = Date.now();
+    if (!state.next || (now - state.lastComputedAt) > 60_000){
+      state.next = computeNext(state.timings);
+      state.lastComputedAt = now;
+    }
+
+    $("prayerName").textContent = state.next.ru;
+    $("prayerTime").textContent = state.next.t;
+
+    const mins = Math.max(0, Math.round((state.next.at.getTime() - Date.now()) / 60000));
+    $("countdownText").textContent = mins === 0 ? "сейчас" : `через ~${mins} мин`;
+
+    const place = `${state.city || "—"}${state.country ? " · " + state.country : ""}`;
+    $("city").textContent = place;
+    $("meta").textContent = `Местное время: ${fmtHM(new Date())}`;
+  }
+
+  async function reverseGeocode(lat, lng){
+    const url = new URL("https://nominatim.openstreetmap.org/reverse");
+    url.searchParams.set("format","jsonv2");
+    url.searchParams.set("lat", String(lat));
+    url.searchParams.set("lon", String(lng));
+    url.searchParams.set("accept-language","ru");
+    const res = await fetch(url.toString(), { headers: { "Accept":"application/json" } });
+    if (!res.ok) throw new Error("Не удалось определить город");
+    const j = await res.json();
+    const a = j.address || {};
+    const city = a.city || a.town || a.village || a.municipality || a.county || null;
+    const country = a.country || null;
+    return { city, country };
+  }
+
+  async function fetchTimingsByCoords(lat, lng, method=4, school=0){
+    const url = new URL("https://api.aladhan.com/v1/timings");
+    url.searchParams.set("latitude", String(lat));
+    url.searchParams.set("longitude", String(lng));
+    url.searchParams.set("method", String(method));
+    url.searchParams.set("school", String(school));
+    const res = await fetch(url.toString());
+    if (!res.ok) throw new Error("Ошибка сети (Aladhan)");
+    const json = await res.json();
+    if (!json || json.code !== 200) throw new Error("Ошибка API (Aladhan)");
+    return json.data.timings;
+  }
+
+  // ---------- ICS (30 дней, напоминание за 10 минут) ----------
+  function icsEscape(s){
+    return String(s||"")
+      .replace(/\\/g,"\\\\")
+      .replace(/\n/g,"\\n")
+      .replace(/,/g,"\\,")
+      .replace(/;/g,"\\;");
+  }
+
+  function formatICSLocalFloating(d){
+    return `${d.getFullYear()}${pad2(d.getMonth()+1)}${pad2(d.getDate())}T${pad2(d.getHours())}${pad2(d.getMinutes())}${pad2(d.getSeconds())}`;
+  }
+
+  function makeEvent({uid,start,end,summary,description,location,alarmMinutes}){
+    const lines = [
+      "BEGIN:VEVENT",
+      `UID:${icsEscape(uid)}`,
+      `DTSTAMP:${formatICSLocalFloating(new Date())}`,
+      `DTSTART:${formatICSLocalFloating(start)}`,
+      `DTEND:${formatICSLocalFloating(end)}`,
+      `SUMMARY:${icsEscape(summary)}`,
+      `DESCRIPTION:${icsEscape(description)}`,
+      `LOCATION:${icsEscape(location)}`,
+      "BEGIN:VALARM",
+      `TRIGGER:-PT${Math.max(1, Math.floor(alarmMinutes))}M`,
+      "ACTION:DISPLAY",
+      `DESCRIPTION:${icsEscape(summary)}`,
+      "END:VALARM",
+      "END:VEVENT"
+    ];
+    return lines.join("\r\n");
+  }
+
+  function downloadICS(filename, content){
+    const blob = new Blob([content], {type:"text/calendar;charset=utf-8"});
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(()=>URL.revokeObjectURL(a.href), 1200);
+  }
+
+  function buildICS30Days(timings, cityLabel){
+    const lead = 10;
+    const now = new Date();
+    const startDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0,0,0,0);
+
+    const events = [];
+    for (let i=0;i<30;i++){
+      const day0 = new Date(startDay.getTime() + i*86400000);
+      const iso = day0.toISOString().slice(0,10);
+
+      for (const [key, ru] of PRAYERS){
+        const t = stripSuffix(timings[key]);
+        if (!t) continue;
+
+        const start = parseHHMMOnDate(t, day0);
+        const end = new Date(start.getTime() + 10*60000);
+        const uid = `${key}-${iso}-${cityLabel}`.replace(/\s+/g,"_");
+
+        events.push(makeEvent({
+          uid,
+          start,
+          end,
+          summary: `Молитва: ${ru}`,
+          description: `Время: ${t}\\n${cityLabel}\\nНапоминание за: ${lead} мин.`,
+          location: cityLabel,
+          alarmMinutes: lead
+        }));
+      }
+    }
+
+    return (
+      "BEGIN:VCALENDAR\r\n" +
+      "VERSION:2.0\r\n" +
+      "PRODID:-//Qibla Minimal//RU\r\n" +
+      "CALSCALE:GREGORIAN\r\n" +
+      "METHOD:PUBLISH\r\n" +
+      events.join("\r\n") + "\r\n" +
+      "END:VCALENDAR\r\n"
+    );
+  }
+
+  // ---------- UI actions ----------
+  function showAllTimes(){
+    if (!state.timings){
+      setStatus("Сначала определи место");
+      return;
+    }
+    const lines = PRAYERS.map(([k,ru]) => `${ru}: ${stripSuffix(state.timings[k])}`).join("\n");
+    alert(lines);
+  }
+
+  async function locateAndLoad(){
+    if (!navigator.geolocation){
+      setStatus("Геолокация недоступна");
+      return;
+    }
+    setStatus("Определяю место…");
+
+    navigator.geolocation.getCurrentPosition(async (pos) => {
+      try{
+        state.lat = pos.coords.latitude;
+        state.lng = pos.coords.longitude;
+
+        const place = await reverseGeocode(state.lat, state.lng);
+        state.city = place.city || "—";
+        state.country = place.country || "";
+
+        setStatus("Загружаю времена…");
+        // метод можно поменять позже, сейчас фикс для простоты
+        state.timings = await fetchTimingsByCoords(state.lat, state.lng, 4, 0);
+
+        state.next = null;
+        state.lastComputedAt = 0;
+
+        updateUI();
+        setStatus("");
+
+        if (state.tick) clearInterval(state.tick);
+        state.tick = setInterval(updateUI, 1000);
+
+      }catch(e){
+        setStatus("Ошибка: " + (e?.message || "неизвестно"));
+      }
+    }, (err) => {
+      setStatus("Доступ к геолокации не дан");
+    }, { enableHighAccuracy:true, timeout:10000, maximumAge:30000 });
+  }
+
+  $("locate").addEventListener("click", locateAndLoad);
+
+  $("addCalendar").addEventListener("click", () => {
+    if (!state.timings){
+      setStatus("Сначала определи место");
+      return;
+    }
+    const cityLabel = `${state.city || "Город"}${state.country ? ", " + state.country : ""}`;
+    const ics = buildICS30Days(state.timings, cityLabel);
+    const fn = `prayer-30days-${new Date().toISOString().slice(0,10)}.ics`;
+    downloadICS(fn, ics);
+    setStatus("Скачано .ics на 30 дней (напоминание за 10 минут)");
+  });
+
+  $("showAll").addEventListener("click", showAllTimes);
+
+  // Auto start
+  locateAndLoad();
+</script>
+</body>
+</html>
